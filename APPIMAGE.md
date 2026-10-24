@@ -8,6 +8,10 @@ Descarga el archivo `.AppImage` para `x86_64` desde [GitHub Releases](https://gi
 
 El código fuente se publica en el repositorio; los modelos y binarios grandes se distribuyen en Releases, no en el historial de Git.
 
+## Escritorios y distribuciones
+
+No hay una dependencia de KDE. El programa incluye Qt y funciona sobre X11 o Wayland; el registro del icono en KDE solo es integración con ese escritorio. Gear Lever es opcional y también se utiliza fuera de KDE. Esta compilación se dirige a Linux x86_64 con un servicio de audio PulseAudio/PipeWire. La distribución está preparada para ser independiente de la distro, con el alcance de pruebas indicado en `INFORME.md`, sin prometer compatibilidad universal con cualquier sistema Linux.
+
 ## Actualizaciones con Gear Lever
 
 El AppImage lleva esta información de actualización incrustada:
