@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Captions Everywhere
+Comment=Offline live captions for Linux and OBS
+Comment[es]=Subtítulos en directo sin conexión para Linux y OBS
+Exec=captions-everywhere
+Icon=captions-everywhere
+Terminal=false
+Categories=AudioVideo;Audio;Accessibility;Qt;
+StartupNotify=true
+StartupWMClass=CaptionsEverywhere
+X-AppImage-Name=Captions Everywhere
+X-AppImage-Version=@VERSION@
+X-AppImage-Arch=x86_64

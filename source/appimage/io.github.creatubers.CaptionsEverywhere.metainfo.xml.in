@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.creatubers.CaptionsEverywhere</id>
+  <name>Captions Everywhere</name>
+  <summary>Offline live captions for Linux and OBS</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer_name>creatubers</developer_name>
+  <launchable type="desktop-id">captions_everywhere.desktop</launchable>
+  <description><p>Local multilingual speech recognition with a floating caption window and transparent browser or text-file output for OBS Studio. Includes the recognition models and runtime libraries.</p></description>
+  <url type="homepage">https://github.com/creatubers/Captions-Everywhere</url>
+  <url type="bugtracker">https://github.com/creatubers/Captions-Everywhere/issues</url>
+  <releases><release version="@VERSION@" date="@DATE@"/></releases>
+  <content_rating type="oars-1.1"/>
+</component>

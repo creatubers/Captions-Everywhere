@@ -1,0 +1,23 @@
+# Estado local y archivos generados
+/state/*
+!/state/.gitkeep
+/Vista-previa.png
+/SHA256SUMS
+/bin/
+/lib/
+/plugins/
+/models/
+/resources/xkb/
+/resources/DejaVuSans.ttf
+/source/build/
+/source/vendor/sherpa/lib/
+__pycache__/
+*.pyc
+
+# Build caches and distribution files
+.cache/
+*.AppImage
+*.AppImage.zsync
+/dist/
+*.AppDir/
+.uuid

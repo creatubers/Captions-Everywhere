@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+APPDIR=${APPDIR:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)}
+if [ -z "${CAPTIONS_EVERYWHERE_STATE_DIR:-}" ]; then
+    IMAGE_DIR=$(dirname -- "${APPIMAGE:-$APPDIR}")
+    if [ "${CAPTIONS_EVERYWHERE_PORTABLE:-0}" = 1 ] || [ -d "$IMAGE_DIR/Captions-Everywhere.data" ]; then
+        export CAPTIONS_EVERYWHERE_STATE_DIR="$IMAGE_DIR/Captions-Everywhere.data"
+    else
+        export CAPTIONS_EVERYWHERE_STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/captions-everywhere"
+    fi
+fi
+exec "$APPDIR/Iniciar.sh" "$@"

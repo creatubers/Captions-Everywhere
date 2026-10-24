@@ -1,0 +1,31 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Captions Everywhere · OBS</title>
+<link rel="icon" href="/logo.png" type="image/png">
+<style>
+@font-face{font-family:PortableCaptions;src:url(/font.ttf) format("truetype")}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+body{display:flex;align-items:flex-end;justify-content:center;padding:20px;font-family:PortableCaptions,"DejaVu Sans",sans-serif}
+#box{max-width:100%;padding:14px 22px;border-radius:14px;background:rgba(15,19,28,.85);color:white;font-size:36px;line-height:1.35;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere}
+#box:empty{display:none}#partial{opacity:.68}
+</style><div id="box"><span id="confirmed"></span><span id="partial"></span></div>
+<script>
+'use strict';
+const box=document.getElementById('box'),c=document.getElementById('confirmed'),p=document.getElementById('partial');
+let stale;
+function render(d){
+ c.textContent=d.confirmed||'';p.textContent=d.provisional?((d.confirmed?' ':'')+d.provisional):'';
+ const s=d.style||{};
+ box.style.fontSize=(s.fontSize||32)+'px';box.style.color=s.foreground||'#ffffff';
+ const h=(s.background||'#111827').replace('#','');
+ if(/^[0-9a-f]{6}$/i.test(h))box.style.background=`rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${(s.opacity??85)/100})`;
+ box.style.maxHeight=((s.lines||3)*1.35*(s.fontSize||32)+28)+'px';
+ // Keep the newest lines visible without changing the native layout.
+ requestAnimationFrame(()=>box.scrollTop=box.scrollHeight);
+ clearTimeout(stale);stale=setTimeout(()=>{c.textContent='';p.textContent=''},10000);
+}
+function connect(){const ws=new WebSocket('ws://127.0.0.1:__WS_PORT__/ws');
+ ws.onmessage=e=>{try{render(JSON.parse(e.data))}catch(_){}};
+ ws.onclose=()=>{c.textContent='';p.textContent='';setTimeout(connect,1000)};
+ ws.onerror=()=>ws.close();
+}connect();
+</script></html>

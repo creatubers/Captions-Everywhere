@@ -1,0 +1,68 @@
+name: Build and publish AppImage
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag (for example v1.3.0)
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  appimage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential cmake ninja-build pkg-config qt6-base-dev qt6-wayland libpulse-dev libgl-dev libegl-dev libxkbcommon-dev libvulkan-dev python3 fonts-dejavu-core xkb-data patchelf squashfs-tools zsync desktop-file-utils
+      - uses: actions/cache@v6.1.0
+        with:
+          path: .cache/dependencies
+          key: appimage-dependencies-${{ hashFiles('source/dependencies.lock.json') }}
+      - name: Prepare clean bundle and pinned dependencies
+        run: |
+          mkdir -p .cache/bundle/resources .cache/bundle/state .cache/tools
+          cp Iniciar.sh LEEME.md LICENSE .cache/bundle/
+          cp resources/logo.png resources/obs.html .cache/bundle/resources/
+          cp -a licenses .cache/bundle/
+          python3 source/scripts/fetch_dependencies.py --cache .cache/dependencies --bundle .cache/bundle --tools .cache/tools
+      - name: Compile and collect runtime libraries
+        run: |
+          source/scripts/build.sh "$PWD/.cache/build"
+          python3 source/scripts/package.py .cache/build .cache/bundle
+          QT_QPA_PLATFORM=offscreen .cache/bundle/Iniciar.sh --self-test
+      - name: Build AppImage with update information
+        env:
+          CE_SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          python3 source/scripts/build_appimage.py --bundle .cache/bundle --output dist --appimagetool .cache/tools/appimagetool.AppImage --runtime .cache/tools/runtime-x86_64 --repository "${{ github.repository }}"
+      - name: Smoke-test AppImage without FUSE
+        run: |
+          mkdir -p .cache/test-state
+          QT_QPA_PLATFORM=offscreen APPIMAGE_EXTRACT_AND_RUN=1 CAPTIONS_EVERYWHERE_STATE_DIR="$PWD/.cache/test-state" dist/*.AppImage --self-test
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: Captions-Everywhere-x86_64
+          path: dist/*
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          VERSION="$(sed -n 's/.*VERSION \([0-9.]*\).*/\1/p' source/CMakeLists.txt | head -1)"
+          test "$TAG" = "v$VERSION"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Captions Everywhere $VERSION" --generate-notes
+          gh release upload "$TAG" dist/*.AppImage dist/*.zsync dist/SHA256SUMS --clobber
