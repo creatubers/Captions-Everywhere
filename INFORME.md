@@ -63,3 +63,5 @@ El proyecto y el programa se han renombrado a **Captions Everywhere**. Se incorp
 ## Distribución AppImage 1.3.0
 
 Se separan recursos y estado para admitir un sistema de archivos de solo lectura. La versión en carpeta sigue utilizando `state/`; el AppImage utiliza XDG_CONFIG_HOME o una carpeta lateral portable. El identificador enviado a Wayland es `captions_everywhere`, coincidente con la entrada de KDE y con Gear Lever. Se añaden metadatos de actualización de GitHub Releases, publicación de `.zsync` y flujo de compilación de Releases.
+
+El AppImage 1.3.0 pasó el arranque mediante FUSE y mediante extracción, y reconoció correctamente la muestra real en español con la carpeta de datos externa. También pasó `--self-test` en una raíz mínima Alpine Linux 3.24.3, sin KDE ni Qt del sistema y con la red aislada; esta prueba solo cubre arranque/salida y no equivale a probar un escritorio Alpine completo. Gear Lever 4.6.2 detectó `GithubUpdater` y los metadatos incrustados durante la integración.
