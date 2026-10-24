@@ -4,7 +4,7 @@ import argparse,datetime,hashlib,json,os,pathlib,re,shutil,subprocess,tempfile
 p=argparse.ArgumentParser();p.add_argument('--bundle',required=True);p.add_argument('--output',required=True);p.add_argument('--appimagetool',required=True);p.add_argument('--runtime',required=True);p.add_argument('--repository',default='creatubers/Captions-Everywhere');args=p.parse_args()
 bundle=pathlib.Path(args.bundle).resolve();out=pathlib.Path(args.output).resolve();out.mkdir(parents=True,exist_ok=True)
 source=pathlib.Path(__file__).resolve().parents[1]
-version=re.search(r'VERSION\s+([0-9.]+)',(source/'CMakeLists.txt').read_text()).group(1)
+version=re.search(r'project\([^\n]*?VERSION\s+([0-9.]+)',(source/'CMakeLists.txt').read_text()).group(1)
 if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',args.repository):raise SystemExit('Invalid GitHub repository')
 owner,repo=args.repository.split('/')
 filename=f'Captions-Everywhere-{version}-x86_64.AppImage'
@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix='captions-appdir-',dir=os.environ.get('C
  subprocess.run(['desktop-file-validate',str(appdir/'captions_everywhere.desktop')],check=True)
  env=dict(os.environ,ARCH='x86_64',VERSION=version,APPIMAGE_EXTRACT_AND_RUN='1')
  cmd=[str(pathlib.Path(args.appimagetool).resolve()),'--runtime-file',str(pathlib.Path(args.runtime).resolve()),'--comp','zstd','--mksquashfs-opt=-Xcompression-level','--mksquashfs-opt=8','--mksquashfs-opt=-processors','--mksquashfs-opt='+os.environ.get('BUILD_JOBS','2'),'-u',update,'--file-url',f'https://github.com/{args.repository}/releases/download/v{version}/{filename}',str(appdir),str(out/filename)]
- subprocess.run(cmd,env=env,check=True)
+ subprocess.run(cmd,env=env,cwd=out,check=True)
  (out/filename).chmod(0o755)
  if not (out/(filename+'.zsync')).is_file():raise SystemExit('appimagetool did not create the zsync file')
  for path in [out/filename,out/(filename+'.zsync')]:
