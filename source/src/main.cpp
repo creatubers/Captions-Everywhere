@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "window.h"
 #include <QApplication>
 #include <QCommandLineParser>
@@ -25,6 +26,29 @@
 #include "ggml-backend.h"
 
 static volatile std::sig_atomic_t shutdownRequested=0;
+// Bundled Qt has no host platform-theme plugin. Read cursor preferences before
+// Wayland creates its cursor theme, while respecting explicitly set variables.
+static void configureCursorTheme() {
+    const QString config=qEnvironmentVariable("XDG_CONFIG_HOME",QDir::homePath()+"/.config");
+    QString theme,size;
+    if(qEnvironmentVariable("XDG_CURRENT_DESKTOP").contains("KDE",Qt::CaseInsensitive)) {
+        QSettings kde(config+"/kcminputrc",QSettings::IniFormat);
+        theme=kde.value("Mouse/cursorTheme").toString();size=kde.value("Mouse/cursorSize").toString();
+    }
+    for(const auto &file:{QString("/gtk-4.0/settings.ini"),QString("/gtk-3.0/settings.ini")}) {
+        QSettings gtk(config+file,QSettings::IniFormat);
+        if(theme.isEmpty())theme=gtk.value("Settings/gtk-cursor-theme-name").toString();
+        if(size.isEmpty())size=gtk.value("Settings/gtk-cursor-theme-size").toString();
+    }
+    if(qEnvironmentVariableIsEmpty("XCURSOR_THEME")&&!theme.isEmpty())qputenv("XCURSOR_THEME",theme.toUtf8());
+    bool ok=false;const int pixels=size.toInt(&ok);
+    if(qEnvironmentVariableIsEmpty("XCURSOR_SIZE")&&ok&&pixels>0&&pixels<=256)qputenv("XCURSOR_SIZE",size.toUtf8());
+    if(qEnvironmentVariableIsEmpty("XCURSOR_PATH")) {
+        QStringList paths{qEnvironmentVariable("XDG_DATA_HOME",QDir::homePath()+"/.local/share")+"/icons",QDir::homePath()+"/.icons"};
+        for(const auto &path:qEnvironmentVariable("XDG_DATA_DIRS","/usr/local/share:/usr/share").split(':',Qt::SkipEmptyParts))paths<<path+"/icons";
+        paths<<"/usr/share/pixmaps";qputenv("XCURSOR_PATH",paths.join(':').toUtf8());
+    }
+}
 static QByteArray loadWav(QString file,QString *error) {
     QFile f(file); if(!f.open(QIODevice::ReadOnly)){*error=f.errorString();return {};}
     auto b=f.readAll(); if(b.size()<44 || b.left(4)!="RIFF" || b.mid(8,4)!="WAVE"){*error="Se necesita WAV PCM de 16 bits, mono, 16000 Hz.";return {};}
@@ -43,7 +67,8 @@ static QByteArray loadWav(QString file,QString *error) {
 }
 static void jsonLine(QJsonObject obj) {auto line=QJsonDocument(obj).toJson(QJsonDocument::Compact);fwrite(line.constData(),1,line.size(),stdout);fputc('\n',stdout);fflush(stdout);}
 int main(int argc,char **argv) {
-    QApplication app(argc,argv);app.setApplicationName("CaptionsEverywhere");app.setApplicationDisplayName("Captions Everywhere");app.setDesktopFileName("captions_everywhere");app.setApplicationVersion("1.3.0");
+    configureCursorTheme();
+    QApplication app(argc,argv);app.setApplicationName("CaptionsEverywhere");app.setApplicationDisplayName("Captions Everywhere");app.setDesktopFileName("captions_everywhere");app.setApplicationVersion("1.4.2");
     QCommandLineParser parser;parser.setApplicationDescription("Subtítulos locales para Linux y OBS");parser.addHelpOption();parser.addVersionOption();
     parser.addOptions({{"diagnostics","Escribir eventos y transcripciones por stdout (opcional)"},{"root","Carpeta portable (pruebas)","path"},{"headless","Servicio sin ventana"},{"start","Iniciar captura inmediatamente"},{"self-test","Comprobar salida y estabilización sin capturar audio"},{"loop-test-wav","Repetir el WAV de prueba"},{"device","Nombre PulseAudio de la entrada (opcional)","name"},{"test-wav","Prueba de audio WAV PCM16 mono 16kHz en tiempo real","file"},{"language","Idioma de prueba: es/en","lang","es"},{"model","Modelo de prueba: parakeet/base/small","model","base"},{"quit-after","Cerrar después de N segundos","seconds"},{"screenshot","Guardar imagen de la ventana para comprobar el diseño","file"}});
     parser.process(app);
@@ -97,7 +122,7 @@ int main(int argc,char **argv) {
         output.clear();output.update("Hola mundo",true);output.update("Hello world",false);
         auto snap=output.snapshot();QFile file(state+"/captions.txt");file.open(QIODevice::ReadOnly);
         if(file.readAll()!=snap["text"].toString().toUtf8() || !output.port())return 3;
-        output.clear();jsonLine({{"event","self-test"},{"ok",true},{"port",output.port()}});return 0;
+        output.clear();jsonLine({{"event","self-test"},{"ok",true},{"port",output.port()},{"cursorTheme",qEnvironmentVariable("XCURSOR_THEME")},{"cursorSize",qEnvironmentVariable("XCURSOR_SIZE")},{"interfaceLanguage",currentUiLanguage()}});return 0;
     }
     recognizer.start();
     if(!parser.isSet("headless"))window.show();
@@ -114,6 +139,6 @@ int main(int argc,char **argv) {
     } else {audio.start();if(parser.isSet("device"))window.selectDevice(parser.value("device"));if(parser.isSet("start"))window.startCapture(true);}
     if(parser.isSet("quit-after")){bool ok=false;double seconds=parser.value("quit-after").toDouble(&ok);if(ok&&seconds>0)QTimer::singleShot(int(seconds*1000),&app,&QCoreApplication::quit);}
     if(parser.isSet("screenshot"))QTimer::singleShot(1200,&app,[&]{window.grab().save(parser.value("screenshot"));});
-    QObject::connect(&app,&QCoreApplication::aboutToQuit,&app,[&]{audio.select(false,"@system");recognizer.configure(false,"base","es");output.clear();audio.requestInterruption();recognizer.requestInterruption();});
+    QObject::connect(&app,&QCoreApplication::aboutToQuit,&app,[&]{audio.select(false,"@system");recognizer.configure(false,"base","es");output.clear();output.stopTranscript();audio.requestInterruption();recognizer.requestInterruption();});
     int rc=app.exec();audio.requestInterruption();audio.wait();recognizer.requestInterruption();recognizer.wait();return rc;
 }

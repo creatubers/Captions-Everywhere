@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Build a self-contained type-2 AppImage and zsync metadata from a fresh bundle."""
-import argparse,datetime,hashlib,json,os,pathlib,re,shutil,subprocess,tempfile
+import argparse,datetime,errno,hashlib,json,os,pathlib,re,shutil,subprocess,tempfile
 p=argparse.ArgumentParser();p.add_argument('--bundle',required=True);p.add_argument('--output',required=True);p.add_argument('--appimagetool',required=True);p.add_argument('--runtime',required=True);p.add_argument('--repository',default='creatubers/Captions-Everywhere');args=p.parse_args()
 bundle=pathlib.Path(args.bundle).resolve();out=pathlib.Path(args.output).resolve();out.mkdir(parents=True,exist_ok=True)
 source=pathlib.Path(__file__).resolve().parents[1]
 version=re.search(r'project\([^\n]*?VERSION\s+([0-9.]+)',(source/'CMakeLists.txt').read_text()).group(1)
 if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',args.repository):raise SystemExit('Invalid GitHub repository')
 owner,repo=args.repository.split('/')
+def copy_model(src,dst):
+ try: os.link(src,dst)
+ except OSError as error:
+  if error.errno!=errno.EXDEV: raise
+  shutil.copy2(src,dst)
 filename=f'Captions-Everywhere-{version}-x86_64.AppImage'
 update=f'gh-releases-zsync|{owner}|{repo}|latest|Captions-Everywhere-*-x86_64.AppImage.zsync'
 for required in ['bin/captions-everywhere','models/parakeet/encoder.int8.onnx','resources/logo.png']:
@@ -17,7 +22,8 @@ with tempfile.TemporaryDirectory(prefix='captions-appdir-',dir=os.environ.get('C
  for name in ('bin','lib','plugins','resources','licenses'):
   shutil.copytree(bundle/name,appdir/name,copy_function=shutil.copy2)
  # Models are immutable and only read during packing. Reflink/hardlink is safe here.
- shutil.copytree(bundle/'models',appdir/'models',copy_function=os.link)
+ # Preserve every model and runtime library.
+ shutil.copytree(bundle/'models',appdir/'models',copy_function=copy_model)
  for name in ('Iniciar.sh','LEEME.md','LICENSE'):
   shutil.copy2(bundle/name,appdir/name)
  shutil.copy2(source/'appimage/AppRun',appdir/'AppRun');(appdir/'AppRun').chmod(0o755)
@@ -31,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix='captions-appdir-',dir=os.environ.get('C
  (appdir/'BUILD-INFO.json').write_text(json.dumps({'name':'Captions Everywhere','version':version,'repository':args.repository,'updateInformation':update,'sourceRevision':os.environ.get('CE_SOURCE_REVISION','local')},indent=2)+'\n')
  subprocess.run(['desktop-file-validate',str(appdir/'captions_everywhere.desktop')],check=True)
  env=dict(os.environ,ARCH='x86_64',VERSION=version,APPIMAGE_EXTRACT_AND_RUN='1')
- cmd=[str(pathlib.Path(args.appimagetool).resolve()),'--runtime-file',str(pathlib.Path(args.runtime).resolve()),'--comp','zstd','--mksquashfs-opt=-Xcompression-level','--mksquashfs-opt=8','--mksquashfs-opt=-processors','--mksquashfs-opt='+os.environ.get('BUILD_JOBS','2'),'-u',update,'--file-url',f'https://github.com/{args.repository}/releases/download/v{version}/{filename}',str(appdir),str(out/filename)]
+ cmd=[str(pathlib.Path(args.appimagetool).resolve()),'--runtime-file',str(pathlib.Path(args.runtime).resolve()),'--comp','zstd','--mksquashfs-opt=-Xcompression-level','--mksquashfs-opt=19','--mksquashfs-opt=-b','--mksquashfs-opt=1M','--mksquashfs-opt=-processors','--mksquashfs-opt='+os.environ.get('BUILD_JOBS','2'),'-u',update,'--file-url',f'https://github.com/{args.repository}/releases/download/v{version}/{filename}',str(appdir),str(out/filename)]
  subprocess.run(cmd,env=env,cwd=out,check=True)
  (out/filename).chmod(0o755)
  if not (out/(filename+'.zsync')).is_file():raise SystemExit('appimagetool did not create the zsync file')

@@ -1,3 +1,13 @@
+## Novedades locales 1.4.0
+
+- **Ajustes → Interfaz / Interface**: «Sistema (automático)» por defecto: español si el idioma del sistema es español; inglés en los demás casos. También puedes fijar Español o English. La elección manual se recuerda.
+- **Guardar transcripción**: activa el guardado de la sesión en un TXT con fecha dentro de `transcripts/` en la carpeta de datos. **Abrir transcripciones** abre esa carpeta. El guardado está desactivado en cada arranque.
+- Se guardan frases revisadas, sin añadir cada resultado provisional. Al pausar, desmarcar o cerrar, también se conserva la última frase disponible, que aún puede ser provisional. No se guarda audio.
+- La entrada de audio se recuerda, incluso si un micrófono está desconectado. «Audio del sistema» y «Micrófono predeterminado» siguen los dispositivos predeterminados del escritorio.
+- Interfaz más breve, sin la etiqueta «LOCAL · SIN CONEXIÓN».
+- El cursor respeta el tema y el tamaño del escritorio, incluidas las preferencias de KDE y GTK.
+- La AppImage conserva Parakeet, Whisper base/small y el detector de voz. Solo cambia la compresión del paquete.
+
 # Captions Everywhere 1.2.2
 
 Subtítulos locales para Linux y OBS. Incluye los modelos y el entorno de ejecución; no necesita internet, cuentas, Python, instalación ni una GPU.

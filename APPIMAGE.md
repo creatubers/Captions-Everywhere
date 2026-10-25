@@ -2,7 +2,7 @@
 
 ## Descarga
 
-La distribución AppImage incluye el programa, sus bibliotecas y **todos los modelos**. El reconocimiento funciona sin conexión y no necesita cuentas ni GPU.
+La AppImage incluye el programa, sus bibliotecas, Parakeet, Whisper base/small y el detector de voz. El reconocimiento funciona sin conexión y no necesita cuentas ni GPU.
 
 Descarga el archivo `.AppImage` para `x86_64` desde [GitHub Releases](https://github.com/creatubers/Captions-Everywhere/releases/latest), dale permiso de ejecución y ábrelo. También puedes importarlo en Gear Lever para añadirlo al menú de aplicaciones.
 
@@ -78,3 +78,15 @@ python3 source/scripts/build_appimage.py --bundle .cache/bundle --output dist --
 Las descargas de compilación están fijadas mediante SHA-256 en `source/dependencies.lock.json`. Si un proveedor cambia un archivo, la compilación se detiene en vez de usar una dependencia distinta silenciosamente.
 
 La acción de GitHub `.github/workflows/release.yml` compila y publica una Release al subir una etiqueta `v*` que coincida con la versión de CMake. También puede ejecutarse manualmente con una etiqueta existente. Para una versión nueva: cambia la versión, confirma los cambios y sube su etiqueta. Gear Lever consultará la nueva Release marcada como más reciente.
+
+## Empaquetado
+
+La AppImage conserva todos los modelos y bibliotecas. Utiliza compresión Zstandard de nivel 19 con bloques de 1 MiB para reducir el tamaño sin modificar los archivos. No hay variantes de producto. Una compilación local no se publica automáticamente en GitHub.
+
+## Transcripciones
+
+El guardado se activa con **Guardar transcripción / Save transcript**. Los TXT UTF-8 se crean en `transcripts/` dentro de la misma carpeta de datos que la configuración. El botón **Abrir transcripciones / Open transcripts** abre esa carpeta. Cada activación crea una sesión nueva; guardar está desactivado al arrancar y no modifica la salida de OBS.
+
+## Idioma de interfaz
+
+El modo predeterminado «Sistema (automático) / System (automatic)» muestra español si el idioma del escritorio es español e inglés en los demás casos. Se comprueba al arrancar. Puedes fijar Español o English desde Ajustes; la elección manual se recuerda. El idioma de reconocimiento del audio es independiente.

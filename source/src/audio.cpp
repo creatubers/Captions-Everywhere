@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "audio.h"
 #include <QMutexLocker>
 #include <QElapsedTimer>
@@ -42,7 +43,7 @@ void Audio::run() {
         loop=pa_mainloop_new();
         ctx=pa_context_new(pa_mainloop_get_api(loop),"Captions Everywhere");
         if(pa_context_connect(ctx,nullptr,PA_CONTEXT_NOFLAGS,nullptr)<0) {
-            emit status("No se puede conectar al audio. Comprueba PipeWire/PulseAudio y los permisos de tu sesión.",true);
+            emit status(ui("No se puede conectar al audio. Comprueba PipeWire/PulseAudio y los permisos de tu sesión."),true);
         } else {
             serverReady=false; target.clear(); defaultSink.clear(); refresh.invalidate();
             while(!isInterruptionRequested()) {
@@ -64,22 +65,22 @@ void Audio::run() {
                 if(!enabled || next!=active || (stream && !PA_STREAM_IS_GOOD(pa_stream_get_state(stream)))) closeStream();
                 if(enabled && !next.isEmpty() && !stream) {
                     pa_sample_spec spec{PA_SAMPLE_FLOAT32LE,16000,1};
-                    stream=pa_stream_new(ctx,"Subtítulos locales",&spec,nullptr);
-                    if(!stream) { emit status("No se puede crear la captura de audio.",true); msleep(500); continue; }
+                    stream=pa_stream_new(ctx,"Captions Everywhere",&spec,nullptr);
+                    if(!stream) { emit status(ui("No se puede crear la captura de audio."),true); msleep(500); continue; }
                     pa_stream_set_read_callback(stream,readAudio,this);
                     pa_buffer_attr attr; attr.maxlength=uint32_t(-1); attr.tlength=uint32_t(-1); attr.prebuf=uint32_t(-1); attr.minreq=uint32_t(-1); attr.fragsize=3200;
                     if(pa_stream_connect_record(stream,next.toUtf8().constData(),&attr,pa_stream_flags_t(PA_STREAM_ADJUST_LATENCY|PA_STREAM_AUTO_TIMING_UPDATE))<0) {
-                        emit status("Entrada de audio no disponible: "+next,true); closeStream(); msleep(500);
+                        emit status(ui("Entrada de audio no disponible: ")+next,true); closeStream(); msleep(500);
                     } else { active=next; serverReady=false; }
                 }
-                if(stream && pa_stream_get_state(stream)==PA_STREAM_READY && !serverReady) { serverReady=true; emit status("Audio conectado",false); }
-                if(stream && pa_stream_get_state(stream)==PA_STREAM_FAILED) { emit status("Se perdió la entrada de audio; reconectando…",true); closeStream(); msleep(500); }
+                if(stream && pa_stream_get_state(stream)==PA_STREAM_READY && !serverReady) { serverReady=true; emit status(ui("Audio conectado"),false); }
+                if(stream && pa_stream_get_state(stream)==PA_STREAM_FAILED) { emit status(ui("Se perdió la entrada de audio; reconectando…"),true); closeStream(); msleep(500); }
                 msleep(10);
             }
         }
         closeStream();
         pa_context_disconnect(ctx); pa_context_unref(ctx); ctx=nullptr;
         pa_mainloop_free(loop); loop=nullptr;
-        if(!isInterruptionRequested()) { emit status("Servicio de audio desconectado; reintentando…",true); for(int i=0;i<20&&!isInterruptionRequested();++i) msleep(100); }
+        if(!isInterruptionRequested()) { emit status(ui("Servicio de audio desconectado; reintentando…"),true); for(int i=0;i<20&&!isInterruptionRequested();++i) msleep(100); }
     }
 }

@@ -11,6 +11,10 @@ if [ ! -w "$STATE_DIR" ]; then
     printf '%s\n' 'La carpeta necesita permiso de escritura. Cópiala a una ubicación de tu usuario.' >&2
     exit 1
 fi
+# Preserve the desktop language before selecting the bundled runtime locale.
+if [ "${CAPTIONS_EVERYWHERE_SYSTEM_LOCALE+x}" != x ]; then
+    export CAPTIONS_EVERYWHERE_SYSTEM_LOCALE="${LANGUAGE:-${LC_ALL:-${LC_MESSAGES:-${LANG:-C}}}}"
+fi
 export LC_ALL=C.UTF-8
 export LC_PORTABLE_ROOT="$ROOT"
 export CAPTIONS_EVERYWHERE_STATE_DIR="$STATE_DIR"

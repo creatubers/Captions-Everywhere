@@ -2,6 +2,8 @@
 #include <QWidget>
 #include <QLabel>
 #include <QToolButton>
+#include <QPushButton>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QSettings>
 #include <QJsonObject>
@@ -9,6 +11,12 @@
 #include "recognizer.h"
 #include "output.h"
 
+class VisibleCheckBox : public QCheckBox {
+public:
+    using QCheckBox::QCheckBox;
+protected:
+    void paintEvent(QPaintEvent *event) override;
+};
 class CaptionView : public QWidget {
 public:
     QString confirmed,provisional;
@@ -34,6 +42,11 @@ private:
     CaptionView *view;
     QLabel *status,*meter,*url,*automaticLanguage;
     QToolButton *toggle;
+    QPushButton *prefs,*transcripts;
+    QCheckBox *record;
+    QLabel *inputLabel,*languageLabel,*modelLabel;
+    QString selectedInput;
+    void retranslate();
     QComboBox *inputs,*languages,*models;
     bool enabled=false;
     void save();

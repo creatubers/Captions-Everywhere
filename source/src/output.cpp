@@ -1,5 +1,7 @@
+#include "i18n.h"
 #include "output.h"
 #include <QFile>
+#include <QDateTime>
 #include <QSaveFile>
 #include <QDir>
 #include <QJsonDocument>
@@ -25,8 +27,8 @@ Output::Output(QString path,QString storage,QObject *p):QObject(p),root(std::mov
 bool Output::listen(quint16 port,QString *err) {
     for(auto peer:peers) peer->disconnectFromHost();
     http.close();
-    if(port<1024 || port>65534) { *err="El puerto debe estar entre 1024 y 65534."; return false; }
-    if(!http.listen(QHostAddress::LocalHost,port)) { *err="Puerto "+QString::number(port)+" ocupado. Elige otro en Ajustes."; return false; }
+    if(port<1024 || port>65534) { *err=ui("El puerto debe estar entre 1024 y 65534."); return false; }
+    if(!http.listen(QHostAddress::LocalHost,port)) { *err=ui("Puerto %1 ocupado. Elige otro en Ajustes.").arg(port); return false; }
     return true;
 }
 QJsonObject Output::snapshot() const {
@@ -43,6 +45,7 @@ QJsonObject Output::snapshot() const {
     return {{"confirmed",c},{"provisional",stable.provisional},{"text",fileText},{"style",style},{"sequence",sequence}};
 }
 void Output::update(QString text,bool final) {
+    if(final && text.simplified().isEmpty())flushTranscript();
     if(!final || text.simplified()!=stable.previous)last.restart();
     // Remove overlap at the boundary of consecutive finalized chunks only.
     auto h=history.split(' ',Qt::SkipEmptyParts), n=text.simplified().split(' ',Qt::SkipEmptyParts);
@@ -52,17 +55,50 @@ void Output::update(QString text,bool final) {
     }
     text=n.mid(overlap).join(' ');
     stable.update(text,final);
+    if(recording()) {
+        pendingTranscript=(stable.confirmed+" "+stable.provisional).simplified();
+        if(final)flushTranscript();
+    }
     if(final) { history=(history+" "+stable.confirmed).simplified(); if(history.size()>500) history=history.right(500).section(' ',1); stable.clear(); }
     publish();
 }
-void Output::clear() { history.clear(); stable.clear(); publish(); }
+void Output::clear() { flushTranscript(); history.clear(); stable.clear(); publish(); }
+bool Output::startTranscript(QString *err) {
+    if(recording())return true;
+    const auto folder=state+"/transcripts";
+    if(!QDir().mkpath(folder)) { *err=ui("No se puede crear la transcripción. Comprueba los permisos de la carpeta de datos."); return false; }
+    const auto stem=folder+"/"+QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm-ss-zzz");
+    // Never overwrite another session, even if two starts share a timestamp.
+    for(int i=0;i<100;++i) {
+        transcript.setFileName(stem+(i?"-"+QString::number(i):QString())+".txt");
+        if(transcript.open(QIODevice::WriteOnly|QIODevice::NewOnly)) {
+            pendingTranscript=(stable.confirmed+" "+stable.provisional).simplified();
+            emit recordingChanged(true);return true;
+        }
+        if(!QFile::exists(transcript.fileName()))break;
+    }
+    *err=ui("No se puede crear la transcripción. Comprueba los permisos de la carpeta de datos.");return false;
+}
+void Output::flushTranscript() {
+    if(!recording() || pendingTranscript.isEmpty())return;
+    const auto bytes=pendingTranscript.toUtf8()+"\n";
+    pendingTranscript.clear();
+    if(transcript.write(bytes)!=bytes.size() || !transcript.flush()) {
+        const auto message=ui("No se pudo guardar la transcripción: ")+transcript.errorString();
+        transcript.close();emit recordingChanged(false);emit error(message);
+    }
+}
+void Output::stopTranscript() {
+    if(!recording())return;
+    flushTranscript();transcript.close();pendingTranscript.clear();emit recordingChanged(false);
+}
 void Output::setHealth(QJsonObject delta) {for(auto it=delta.begin();it!=delta.end();++it)health.insert(it.key(),it.value());}
 void Output::setStyle(QJsonObject s) { style=std::move(s); publish(); }
 void Output::publish() {
     ++sequence; auto data=snapshot();
     QSaveFile file(state+"/captions.txt");
     if(!file.open(QIODevice::WriteOnly) || file.write(data["text"].toString().toUtf8())<0 || !file.commit()) {
-        if(writeError.isEmpty()) { writeError="No se puede escribir el archivo de subtítulos en la carpeta de datos. Comprueba sus permisos."; emit error(writeError); }
+        if(writeError.isEmpty()) { writeError=ui("No se puede escribir el archivo de subtítulos en la carpeta de datos. Comprueba sus permisos."); emit error(writeError); }
     } else writeError.clear();
     const auto json=QString::fromUtf8(QJsonDocument(data).toJson(QJsonDocument::Compact));
     for(auto peer:peers) if(peer->bytesToWrite()<64*1024) peer->write(frame(json.toUtf8()));

@@ -61,3 +61,7 @@ Empaqueta siempre en un destino nuevo. No modifiques ejecutables ni bibliotecas 
 ## AppImage y publicación
 
 Consulta `../APPIMAGE.md`. La versión 1.3.0 separa los recursos de solo lectura de la carpeta de estado, proporciona metadatos de escritorio para Wayland y añade el flujo de GitHub Releases con información de actualización compatible con Gear Lever.
+
+## Comprobaciones breves de las funciones de 1.4
+
+En el entorno de compilación, activa `-DCE_BUILD_CHECKS=ON` con CMake y ejecuta `QT_QPA_PLATFORM=offscreen build/captions-feature-checks`. Comprueba en segundos el cambio de interfaz y su persistencia, restauración/reconexión de entrada, menú de modelos disponibles y guardado de correcciones, última frase, pausa y errores de escritura. No carga modelos ni captura audio.

@@ -8,7 +8,9 @@ Subtítulos en directo para Linux y OBS, sin dependencia de KDE, con reconocimie
 
 Clonar el repositorio descarga el código fuente; para ejecutarlo directamente, utiliza el AppImage de Releases o compílalo siguiendo la guía.
 
-El AppImage incluye los modelos y permite comprobar actualizaciones desde Gear Lever. Si utilizas la distribución en carpeta, ejecuta **`Iniciar.sh`**.
+La interfaz usa español si el sistema está en español e inglés en los demás casos, con selección manual en Ajustes. Permite guardar transcripciones TXT y recuerda la entrada de audio.
+
+El AppImage incluye todos los modelos y permite comprobar actualizaciones desde Gear Lever. Si utilizas la distribución en carpeta, ejecuta **`Iniciar.sh`**.
 
 - [Descarga, actualizaciones y modo portable del AppImage](APPIMAGE.md)
 - [Guía de uso y configuración de OBS](LEEME.md)

@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "recognizer.h"
 #include "whisper.h"
 #include "c-api.h"
@@ -62,24 +63,24 @@ void Recognizer::run() {
             input.swap(pending);inputIdle.restart();
         }
         if(gen!=current || lost>0) { utterance.clear(); preRoll.clear(); vadHistory.clear(); vadTick=0; vadVoice=false; speaking=false; silence=0; sinceDecode=0; current=gen; contextText.clear(); lastHypothesis.clear(); }
-        if(lost>0) {emit caption(QString(),true);emit status("Se omitió audio antiguo para mantener el directo.",true);}
+        if(lost>0) {emit caption(QString(),true);emit status(ui("Se omitió audio antiguo para mantener el directo."),true);}
         if(loaded!=m || (!ctx && m!="parakeet") || !vad) {
             if(ctx) { whisper_free(ctx); ctx=nullptr; }
             if(vad) { whisper_vad_free(vad); vad=nullptr; }
             const auto path=root+"/models/ggml-"+m+"-q5_1.bin";
             const auto vpath=root+"/models/ggml-silero-v5.1.2.bin";
             if((m!="parakeet" && !QFileInfo::exists(path)) || !QFileInfo::exists(vpath)) {
-                emit status("Falta un modelo en models/. Vuelve a copiar la carpeta completa.",true);
+                emit status(ui("Falta un modelo en models/. Vuelve a copiar la carpeta completa."),true);
                 QMutexLocker lock(&mutex); enabled=false; continue;
             }
-            emit status("Cargando modelo "+m+"…",false);
+            emit status(ui("Cargando modelo ")+m+"…",false);
             auto cp=whisper_context_default_params(); cp.use_gpu=false;
             if(m=="parakeet") {
                 if(!offline) {
                     const QByteArray dir=(root+"/models/parakeet/").toUtf8();
                     const QByteArray encoder=dir+"encoder.int8.onnx",decoder=dir+"decoder.int8.onnx",joiner=dir+"joiner.int8.onnx",tokens=dir+"tokens.txt";
                     if(!QFileInfo::exists(QString::fromUtf8(encoder)) || !QFileInfo::exists(QString::fromUtf8(decoder)) || !QFileInfo::exists(QString::fromUtf8(joiner)) || !QFileInfo::exists(QString::fromUtf8(tokens))) {
-                        emit status("Falta un archivo en models/parakeet/. Copia la carpeta completa.",true);QMutexLocker lock(&mutex);enabled=false;continue;
+                        emit status(ui("Falta un archivo en models/parakeet/. Copia la carpeta completa."),true);QMutexLocker lock(&mutex);enabled=false;continue;
                     }
                     SherpaOnnxOfflineRecognizerConfig config{};
                     config.feat_config.sample_rate=16000;config.feat_config.feature_dim=80;
@@ -91,8 +92,8 @@ void Recognizer::run() {
             } else ctx=whisper_init_from_file_with_params(path.toUtf8().constData(),cp);
             auto vp=whisper_vad_default_context_params(); vp.use_gpu=false; vp.n_threads=1;
             vad=whisper_vad_init_from_file_with_params(vpath.toUtf8().constData(),vp);
-            if((m=="parakeet"?!offline:!ctx) || !vad) { emit status("No se pudo cargar el modelo. Comprueba los archivos y la memoria disponible.",true); QMutexLocker lock(&mutex); enabled=false; continue; }
-            loaded=m; emit status("Listo · esperando voz",false);
+            if((m=="parakeet"?!offline:!ctx) || !vad) { emit status(ui("No se pudo cargar el modelo. Comprueba los archivos y la memoria disponible."),true); QMutexLocker lock(&mutex); enabled=false; continue; }
+            loaded=m; emit status(ui("Listo"),false);
         }
         if(isPrime) {bool valid;{QMutexLocker lock(&mutex);valid=generation==gen;}if(valid)emit ready();}
         if(input.empty())continue;
@@ -169,14 +170,14 @@ void Recognizer::run() {
                     const int n=whisper_full_n_segments(ctx);
                     for(int i=0;i<n;++i) if(whisper_full_get_segment_no_speech_prob(ctx,i)<0.65f) result+=QString::fromUtf8(whisper_full_get_segment_text(ctx,i));
                     result=result.simplified();
-                } else { QMutexLocker l(&mutex); if(enabled && generation==gen) emit status("Error durante el reconocimiento; se reintentará con el siguiente fragmento.",true); }
+                } else { QMutexLocker l(&mutex); if(enabled && generation==gen) emit status(ui("Error durante el reconocimiento; se reintentará con el siguiente fragmento."),true); }
             }
                 }
             bool valid;
             { QMutexLocker lock(&mutex); valid=enabled && generation==gen; }
             if(valid) {
                 if(!result.isEmpty()) {emit caption(result,cut);lastHypothesis=result;}
-                if(!cut && !result.isEmpty()) emit status("Escuchando · el texto sigue revisándose con contexto",false);
+                if(!cut && !result.isEmpty()) emit status(ui("Escuchando"),false);
                 emit metric(elapsed,double(utterance.size())/rate,lost); lost=0;
             }
             if(cut) {

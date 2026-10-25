@@ -4,6 +4,7 @@
 #include <QTcpSocket>
 #include <QJsonObject>
 #include <QElapsedTimer>
+#include <QFile>
 #include "recognizer.h"
 
 class Output : public QObject {
@@ -13,6 +14,10 @@ public:
     bool listen(quint16 port,QString *error);
     void update(QString text,bool final);
     void clear();
+    bool startTranscript(QString *error);
+    void stopTranscript();
+    QString transcriptPath() const { return transcript.fileName(); }
+    bool recording() const { return transcript.isOpen(); }
     void setStyle(QJsonObject s);
     void setHealth(QJsonObject delta);
     QJsonObject snapshot() const;
@@ -21,8 +26,12 @@ public:
 signals:
     void changed(QString confirmed,QString provisional);
     void error(QString message);
+    void recordingChanged(bool active);
 private:
     QString root,state,history;
+    QFile transcript;
+    QString pendingTranscript;
+    void flushTranscript();
     Stabilizer stable;
     QJsonObject style,health;
     QTcpServer http;

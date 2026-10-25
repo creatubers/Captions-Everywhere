@@ -1,8 +1,32 @@
+## Versión 1.4.2 — 25 de octubre de 2026
+
+La interfaz sigue el idioma del escritorio de forma predeterminada: español para `es` y sus variantes regionales; inglés para los demás idiomas. «Ajustes → Interfaz» ofrece Sistema (automático), Español y English. Las preferencias anteriores a este modo pasan a automático; las elecciones manuales nuevas se guardan.
+
+El lanzador conserva la preferencia de idioma antes de fijar C.UTF-8 para el runtime incluido. Se respeta la primera preferencia de LANGUAGE y la precedencia LC_ALL, LC_MESSAGES, LANG cuando LANGUAGE está vacío. Cambiar el idioma de interfaz no cambia el reconocimiento del audio.
+
+Comprobado con es_ES, es_MX, es_AR y preferencias múltiples; inglés, francés, alemán, portugués y C; prioridad de LANGUAGE y selección manual persistente. El arranque a través de Iniciar.sh conserva la detección aunque el runtime use C.UTF-8.
+
+## Correcciones incluidas desde 1.4.1
+
+La casilla usa un indicador dibujado con borde claro y marca verde, visible tanto desactivada como activada. El botón se llama «Abrir transcripciones / Open transcripts».
+
+El botón anterior trasladaba a `kde-open`/Dolphin las rutas de complementos Qt de la aplicación; el registro de KDE confirmó dos SIGSEGV a las 11:43:40 del 25 de octubre de 2026. Ahora se usa `xdg-open` mediante un proceso asíncrono con las variables del paquete retiradas. Se conserva la sesión del escritorio y se informa si el lanzador falla.
+
+Comprobado el indicador en ambos estados, el texto del botón y la apertura real de la carpeta de transcripciones con el entorno limpio: salida normal, código 0. Se mantienen las comprobaciones breves de guardado, idioma y entrada.
+
+## Cambios incluidos desde 1.4.0
+
+Interfaz Español/English con selección persistente; guardado voluntario de sesiones TXT UTF-8; restauración de la entrada antes de guardar ajustes al arrancar; textos más breves; lectura de preferencias de cursor KDE/GTK antes de inicializar Qt. Se mantienen todos los motores, modelos, parámetros de reconocimiento y bibliotecas.
+
+Comprobaciones breves realizadas: cambio de idioma mediante el diálogo y restauración al crear otra ventana; micrófono predeterminado y específico tras reinicio/enumeración/desconexión/reconexión; transcripción con correcciones, español/inglés, pausa, última frase y errores de escritura; arranque y salida OBS en ambos idiomas. Las preferencias de cursor detectadas en esta sesión son `breeze_cursors`, 30 píxeles; se comprueba también que las variables XCURSOR explícitas tienen prioridad.
+
+La AppImage final mide 710,4 MiB (antes 731,5 MiB). Se compararon SHA-256 de los 8 archivos de modelos y las 136 bibliotecas del montaje con la carpeta original: idénticos. El arranque de la AppImage final y la selección de cursor Breeze/30 pasaron. El empaquetado usa Zstandard nivel 19 y bloques de 1 MiB. No se eliminan modelos ni opciones para reducir tamaño. Los experimentos anteriores de empaquetado no constituyen variantes entregadas. No se han repetido pruebas largas ni se amplía el alcance de distribuciones verificadas.
+
 # Validación — 24 de octubre de 2026
 
-## Estado entregado
+## Reconocimiento desde 1.2.2
 
-Versión 1.2.2. Reconocimiento principal **Parakeet TDT 0.6B v3 INT8**, local en CPU, idioma automático. Whisper base/small siguen disponibles para selección manual de español/inglés. La sustitución del modelo principal responde a los problemas de precisión observados con la primera implementación.
+ Reconocimiento principal **Parakeet TDT 0.6B v3 INT8**, local en CPU, idioma automático. Whisper base/small siguen disponibles para selección manual de español/inglés. La sustitución del modelo principal responde a los problemas de precisión observados con la primera implementación.
 
 La versión inicial confirmaba segmentos tras 650 ms de silencio, descartaba el contexto entre segmentos y utilizaba un contexto acústico reducido de Whisper. Esas decisiones se han retirado. La versión final mantiene revisable una ventana de hasta 20 s; las hipótesis reemplazan el bloque anterior y una pausa de 0,9 s provoca una revisión, sin congelarlo. Se cierra tras una pausa de 6 s o al alcanzar el límite de la ventana. La captura conserva un segundo previo a la detección de voz para reducir pérdidas al principio de las palabras.
 
